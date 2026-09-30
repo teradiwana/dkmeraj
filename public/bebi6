@@ -1,0 +1,32 @@
+// Background function: may run up to 15 minutes. Netlify answers the caller with 202 immediately.
+import crypto from 'node:crypto';
+import { getSettings, getResults, apiKey, today, jobs, images, meta } from './_lib.mjs';
+import { providers } from './_providers.mjs';
+
+export default async req => {
+  const { id } = await req.json();
+  const input = await jobs().get('in/' + id, { type: 'json' });
+  if (!input) return;
+  let last = '';
+  const set = state => jobs().setJSON(id, state);
+  try {
+    const s = await getSettings();
+    const provider = providers[s.provider];
+    if (!provider) throw new Error('Unknown provider ' + s.provider);
+    const buf = await provider.generate({
+      apiKey: apiKey(s), person: input.person, garment: input.garment, type: input.type,
+      onStatus: m => { if (m !== last) { last = m; set({ status: 'processing', message: m }).catch(() => {}); } },
+    });
+    const file = crypto.randomUUID() + '.jpg';
+    await images().set(file, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+    const results = await getResults();
+    results.push({ id: file, file, date: today(), createdAt: Date.now(), gender: input.gender, type: input.type });
+    await meta().setJSON('results', results);
+    await set({ status: 'done', url: '/api/result?f=' + file });
+  } catch (e) {
+    console.error('Try-on failed:', e.message);
+    await set({ status: 'failed', error: e.userMessage || 'Generation fail ho gaya. Dobara try karein. / Generation failed, please try again.' });
+  } finally {
+    await jobs().delete('in/' + id).catch(() => {}); // remove customer photos
+  }
+};

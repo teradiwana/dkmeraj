@@ -1,0 +1,8 @@
+import { jobs, json } from './_lib.mjs';
+export default async req => {
+  const id = new URL(req.url).searchParams.get('id') || '';
+  if (!/^[\w-]{10,}$/.test(id)) return json({ error: 'Bad id' }, 400);
+  const st = await jobs().get(id, { type: 'json' });
+  return st ? json(st) : json({ error: 'Job not found' }, 404);
+};
+export const config = { path: '/api/status' };

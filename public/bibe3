@@ -1,0 +1,8 @@
+import { images } from './_lib.mjs';
+export default async req => {
+  const f = new URL(req.url).searchParams.get('f') || '';
+  if (!/^[\w-]+\.jpg$/.test(f)) return new Response('Bad request', { status: 400 });
+  const buf = await images().get(f, { type: 'arrayBuffer' });
+  return buf ? new Response(buf, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600' } }) : new Response('Not found', { status: 404 });
+};
+export const config = { path: '/api/result' };

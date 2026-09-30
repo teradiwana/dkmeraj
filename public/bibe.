@@ -1,0 +1,35 @@
+// Each provider: generate({apiKey, person, garment, type, onStatus}) -> Promise<Buffer>. person/garment are data: URIs.
+const fail = (msg, detail) => Object.assign(new Error(detail || msg), { userMessage: msg });
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// FASHN adapter. Verify endpoint/fields against https://docs.fashn.ai before going live.
+const BASE = 'https://api.fashn.ai/v1';
+const CATEGORY = { pants: 'bottoms', shirt: 'tops', tshirt: 'tops', jacket: 'tops' };
+
+const fashn = {
+  async generate({ apiKey, person, garment, type, onStatus }) {
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+    onStatus('AI ko photos mil gayi...');
+    const run = await fetch(`${BASE}/run`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ model_name: 'tryon-v1.6', inputs: { model_image: person, garment_image: garment, category: CATEGORY[type] || 'auto', mode: 'quality' } }),
+    });
+    const started = await run.json().catch(() => ({}));
+    if (!run.ok || !started.id) throw fail('AI service ne request reject ki. API key aur photos check karein.', `run ${run.status}: ${JSON.stringify(started)}`);
+    for (let i = 0; i < 100; i++) {
+      await sleep(2500);
+      const s = await (await fetch(`${BASE}/status/${started.id}`, { headers })).json().catch(() => ({}));
+      if (s.status === 'completed' && s.output?.[0]) {
+        onStatus('Final image tayyar ho rahi hai...');
+        const img = await fetch(s.output[0]);
+        if (!img.ok) throw fail('Result download nahi hua.', 'output ' + img.status);
+        return Buffer.from(await img.arrayBuffer());
+      }
+      if (s.status === 'failed') throw fail('AI is photo par trial nahi bana paya. Saaf, seedhi photo try karein.', JSON.stringify(s.error));
+      onStatus(s.status === 'in_queue' ? 'Line mein hai, thoda wait karein...' : 'AI kapda fit kar raha hai...');
+    }
+    throw fail('Bahut der lag gayi. Dobara try karein.', 'timeout');
+  },
+};
+
+export const providers = { fashn }; // add more providers here

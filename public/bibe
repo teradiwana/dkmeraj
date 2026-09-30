@@ -1,0 +1,24 @@
+import { getStore } from '@netlify/blobs';
+import crypto from 'node:crypto';
+
+export const meta = () => getStore('meta');
+export const jobs = () => getStore('jobs');
+export const images = () => getStore('images');
+
+const DEFAULTS = { shopName: 'My Clothing Store', logo: '', dailyLimit: 100, provider: 'fashn', apiKey: '' };
+export const getSettings = async () => ({ ...DEFAULTS, ...((await meta().get('settings', { type: 'json' })) || {}) });
+export const getResults = async () => (await meta().get('results', { type: 'json' })) || [];
+export const apiKey = s => process.env.AI_API_KEY || s.apiKey;
+export const today = () => new Date().toISOString().slice(0, 10);
+export const json = (data, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+
+// Stateless admin token: "<expiry>.<hmac>" signed with ADMIN_PASSWORD
+const sign = exp => crypto.createHmac('sha256', process.env.ADMIN_PASSWORD || '').update(String(exp)).digest('hex');
+export const makeToken = () => { const exp = Date.now() + 12 * 3600e3; return `${exp}.${sign(exp)}`; };
+export function isAdmin(req) {
+  const [exp, sig] = (req.headers.get('authorization') || '').replace('Bearer ', '').split('.');
+  if (!process.env.ADMIN_PASSWORD || !exp || !sig || +exp < Date.now()) return false;
+  const good = sign(exp);
+  return sig.length === good.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(good));
+}

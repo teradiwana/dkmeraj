@@ -1,0 +1,29 @@
+import crypto from 'node:crypto';
+import { getSettings, getResults, apiKey, today, json, jobs } from './_lib.mjs';
+
+const OK = /^image\/(jpe?g|png|webp)$/;
+const uri = async f => `data:${f.type};base64,${Buffer.from(await f.arrayBuffer()).toString('base64')}`;
+
+export default async req => {
+  if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
+  let form;
+  try { form = await req.formData(); } catch { return json({ error: 'Photos nahi mili. / Photos missing.' }, 400); }
+  const person = form.get('person'), garment = form.get('garment');
+  if (!(person instanceof File) || !(garment instanceof File)) return json({ error: 'Dono photos zaruri hain. / Both photos are required.' }, 400);
+  if (!OK.test(person.type) || !OK.test(garment.type)) return json({ error: 'Sirf JPG, PNG ya WEBP photo chalegi. / Only JPG, PNG or WEBP.' }, 400);
+  if (person.size > 4e6 || garment.size > 4e6) return json({ error: 'Photo bahut badi hai. / Photo is too large.' }, 400);
+
+  const s = await getSettings();
+  if (!apiKey(s)) return json({ error: 'AI service abhi set nahi hai. / AI service is not configured.' }, 503);
+  const used = (await getResults()).filter(r => r.date === today()).length;
+  if (used >= s.dailyLimit) return json({ error: 'Aaj ki limit poori ho gayi. Kal try karein. / Daily limit reached.' }, 429);
+
+  const id = crypto.randomUUID();
+  await jobs().setJSON('in/' + id, { person: await uri(person), garment: await uri(garment), gender: form.get('gender'), type: form.get('type') });
+  await jobs().setJSON(id, { status: 'processing', message: 'Photos bheji ja rahi hain...' });
+
+  const r = await fetch(new URL('/.netlify/functions/tryon-background', req.url), { method: 'POST', body: JSON.stringify({ id }) });
+  if (r.status !== 202 && !r.ok) return json({ error: 'AI job shuru nahi ho paya. / Could not start the job.' }, 502);
+  return json({ id });
+};
+export const config = { path: '/api/tryon' };

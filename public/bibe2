@@ -1,0 +1,3 @@
+import { getSettings, json } from './_lib.mjs';
+export default async () => { const s = await getSettings(); return json({ shopName: s.shopName, logo: s.logo }); };
+export const config = { path: '/api/config' };

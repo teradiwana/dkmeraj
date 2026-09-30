@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Virtual Trial Room</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@500;700&display=swap">
+<style>
+:root{--bg:#fff;--ink:#17191c;--mute:#6b7076;--line:#e6e4df;--stone:#f5f3ef;--green:#1e4d3f;--green-d:#153a2f;--err:#b3261e;--r:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#fff}} /* shop look stays white */
+*{box-sizing:border-box;margin:0}
+body{font:16px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);-webkit-tap-highlight-color:transparent}
+h1,h2,.brand{font-family:"DM Serif Display",Georgia,serif;font-weight:400}
+.wrap{max-width:560px;margin:0 auto;padding:0 18px 48px}
+header.top{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);max-width:none}
+header.top img{height:34px;width:auto;border-radius:6px}
+.brand{font-size:20px}
+.hero{padding:28px 0 8px}
+.hero h1{font-size:clamp(32px,9vw,46px);line-height:1.08}
+.hero p{color:var(--mute);margin-top:8px}
+.step{margin-top:22px;border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.step h2{font-size:22px;display:flex;align-items:center;gap:10px}
+.step h2 span{font:700 13px Manrope,sans-serif;background:var(--ink);color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center}
+.step small{color:var(--mute);display:block;margin:2px 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:10px 16px;font:600 15px inherit;color:var(--ink);min-height:44px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.drop{position:relative;aspect-ratio:3/4;max-height:420px;width:100%;border-radius:12px;background:var(--stone) center/contain no-repeat;display:grid;place-items:center;text-align:center;color:var(--mute);padding:20px;overflow:hidden}
+.drop.has{background-color:#fff}
+.row{display:flex;gap:10px;margin-top:12px}
+.btn{flex:1;min-height:54px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);font:700 16px inherit;cursor:pointer;padding:0 14px;text-align:center;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.primary:active{background:var(--green-d)}
+.btn.big{min-height:64px;font-size:19px;letter-spacing:.02em;width:100%}
+.btn.danger{border-color:var(--err);color:var(--err)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible,.chip:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #7fb5a3;outline-offset:2px}
+input[type=file]{display:none}
+.msg{margin-top:12px;padding:12px 14px;border-radius:10px;background:#fdecea;color:var(--err);font-weight:600}
+.hidden{display:none!important}
+.loading{text-align:center;padding:30px 10px}
+.bar{height:6px;background:var(--stone);border-radius:9px;overflow:hidden;margin:18px 0 10px}
+.bar i{display:block;height:100%;width:40%;background:var(--green);border-radius:9px;animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+@media(prefers-reduced-motion:reduce){.bar i{animation:none;width:100%;opacity:.5}}
+.result img{width:100%;border-radius:12px;display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+footer{text-align:center;color:var(--mute);font-size:13px;margin-top:30px}
+/* admin */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card b{font:400 32px "DM Serif Display",Georgia,serif;display:block}
+label{display:block;font-weight:600;margin:14px 0 6px}
+input[type=text],input[type=password],input[type=number],select{width:100%;min-height:48px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;background:#fff}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+.gallery figure img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px}
+.gallery figcaption{font-size:12px;color:var(--mute);margin:4px 0}
+.gallery .btn{min-height:40px;font-size:13px}
+
+</style>
+</head>
+<body>
+<div id="viewShop">
+<header class="top"><img id="logo" class="hidden" alt=""><span class="brand" id="shop">Fashion Store</span></header>
+<main class="wrap">
+  <section class="hero">
+    <h1>AI Virtual Trial Room</h1>
+    <p>Kapde kharidne se pehle AI se pehen kar dekhein</p>
+  </section>
+
+  <section class="step">
+    <h2><span>1</span> Customer Photo <small style="display:inline;margin:0">/ Aapki photo</small></h2>
+    <small>Saaf, seedhi photo jisme poora upar ka hissa dikhe. / Clear, front-facing photo.</small>
+    <div class="chips" id="gender" role="group" aria-label="Customer">
+      <button class="chip" aria-pressed="true" data-v="male">Male / पुरुष</button>
+      <button class="chip" aria-pressed="false" data-v="female">Female / महिला</button>
+      <button class="chip" aria-pressed="false" data-v="kids">Kids / बच्चे</button>
+    </div>
+    <div class="drop" id="personDrop">Aapki photo yahan dikhegi<br>Your photo will appear here</div>
+    <div class="row" id="personBtns">
+      <label class="btn primary" for="personFile">Upload Photo</label>
+      <label class="btn" for="personCam">Camera</label>
+    </div>
+    <div class="row hidden" id="personEdit">
+      <label class="btn" for="personCam">Retake / फिर से लें</label>
+      <button class="btn danger" data-clear="person">Remove / हटाएं</button>
+    </div>
+    <input type="file" id="personFile" accept="image/jpeg,image/png,image/webp">
+    <input type="file" id="personCam" accept="image/*" capture="user">
+  </section>
+
+  <section class="step">
+    <h2><span>2</span> Garment Photo <small style="display:inline;margin:0">/ Kapde ki photo</small></h2>
+    <small>Kapde ki saaf photo, plain background par. / Flat, clear garment photo.</small>
+    <div class="chips" id="type" role="group" aria-label="Garment type"></div>
+    <div class="drop" id="garmentDrop">Kapde ki photo yahan dikhegi<br>Garment photo will appear here</div>
+    <div class="row" id="garmentBtns">
+      <label class="btn primary" for="garmentFile">Upload Clothing Photo</label>
+      <label class="btn" for="garmentCam">Camera</label>
+    </div>
+    <div class="row hidden" id="garmentEdit">
+      <label class="btn" for="garmentCam">Retake / फिर से लें</label>
+      <button class="btn danger" data-clear="garment">Remove / हटाएं</button>
+    </div>
+    <input type="file" id="garmentFile" accept="image/jpeg,image/png,image/webp">
+    <input type="file" id="garmentCam" accept="image/*" capture="environment">
+  </section>
+
+  <section class="step">
+    <h2><span>3</span> Try On</h2>
+    <div class="row"><button class="btn primary big" id="go" disabled>AI TRY ON</button></div>
+    <div id="error" class="msg hidden" role="alert"></div>
+    <div id="loading" class="loading hidden" aria-live="polite">
+      <strong>AI aapke kapde ka virtual trial bana raha hai...</strong>
+      <div class="bar"><i></i></div>
+      <div id="status" style="color:var(--mute)"></div>
+      <div id="timer" style="color:var(--mute);font-size:13px"></div>
+    </div>
+  </section>
+
+  <section class="step result hidden" id="result">
+    <h2>Aapka Result</h2>
+    <img id="resultImg" alt="Virtual try-on result" style="margin-top:12px">
+    <div class="grid2">
+      <button class="btn primary" id="dl">Download Image</button>
+      <button class="btn" id="share">Share</button>
+      <button class="btn" id="another">Try Another Garment</button>
+      <button class="btn" id="again">Try Again</button>
+    </div>
+  </section>
+  <footer>AI result asli kapde se thoda alag ho sakta hai. / AI preview may differ slightly from the real garment.</footer>
+</main>
+</div>
+<div id="viewAdmin" class="hidden">
+<header class="top"><span class="brand">Trial Room admin</span></header>
+<main class="wrap">
+  <section id="login" class="step">
+    <h2>Admin login</h2>
+    <label for="pw">Password</label>
+    <input type="password" id="pw" autocomplete="current-password">
+    <div class="row"><button class="btn primary" id="loginBtn">Log in</button></div>
+    <div id="loginErr" class="msg hidden"></div>
+  </section>
+
+  <div id="panel" class="hidden">
+    <div class="cards">
+      <div class="card"><b id="sTotal">–</b>Total try-ons</div>
+      <div class="card"><b id="sToday">–</b>Today</div>
+      <div class="card"><b id="sLimit">–</b>Daily limit</div>
+    </div>
+
+    <section class="step">
+      <h2>Shop and AI settings</h2>
+      <label for="shopName">Shop name</label><input type="text" id="shopName" maxlength="60">
+      <label for="logoFile">Shop logo</label><input type="file" id="logoFile" accept="image/*" style="display:block">
+      <label for="limit">Maximum generations per day</label><input type="number" id="limit" min="0">
+      <label for="provider">AI provider</label><select id="provider"></select>
+      <label for="apiKey">AI API key</label>
+      <input type="password" id="apiKey" autocomplete="off" placeholder="">
+      <small id="keyNote" style="color:var(--mute)">The key is stored on the server only and is never shown again.</small>
+      <div class="row"><button class="btn primary" id="saveBtn">Save settings</button></div>
+      <div id="saveMsg" class="msg hidden"></div>
+    </section>
+
+    <section class="step">
+      <h2>Generated results</h2>
+      <div class="row">
+        <input type="number" id="days" min="0" value="30" style="max-width:110px" aria-label="Days">
+        <button class="btn danger" id="purge">Delete results older than these days</button>
+      </div>
+      <div class="gallery" id="gallery"></div>
+      <p id="empty" style="color:var(--mute);margin-top:12px" class="hidden">No results yet. They appear here after customers use the trial room.</p>
+    </section>
+  </div>
+</main>
+</div>
+<script>
+// AI server ka address. Agar yeh file usi server se khul rahi hai to khali chhodein.
+// Alag jagah host karein to yahan server ka URL likhein, jaise 'https://your-server.com'
+const API = '';
+const isAdmin = () => location.hash === '#admin';
+function route() {
+  document.querySelector('#viewShop').classList.toggle('hidden', isAdmin());
+  document.querySelector('#viewAdmin').classList.toggle('hidden', !isAdmin());
+  document.title = isAdmin() ? 'Admin – Trial Room' : 'AI Virtual Trial Room';
+}
+addEventListener('hashchange', route); route();
+</script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const TYPES = [['shirt','Shirt'],['tshirt','T-shirt'],['kurta','Kurta'],['pathani','Pathani'],['sherwani','Sherwani'],['jacket','Jacket'],['pants','Pants'],['other','Other']];
+  const state = { person: null, garment: null, gender: 'male', type: 'shirt', busy: false, blob: null };
+  const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+
+  // ---- shop branding ----
+  fetch(API+'/api/config').then(r => r.json()).then(c => {
+    $('#shop').textContent = c.shopName; document.title = c.shopName + ' – AI Virtual Trial Room';
+    if (c.logo) { $('#logo').src = c.logo; $('#logo').classList.remove('hidden'); }
+  }).catch(() => {});
+
+  // ---- option chips ----
+  function chips(box, key) {
+    box.addEventListener('click', e => {
+      const b = e.target.closest('.chip'); if (!b) return;
+      state[key] = b.dataset.v;
+      box.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b));
+    });
+  }
+  $('#type').innerHTML = TYPES.map(([v, l], i) => `<button class="chip" aria-pressed="${!i}" data-v="${v}">${l}</button>`).join('');
+  chips($('#gender'), 'gender'); chips($('#type'), 'type');
+
+  // ---- image handling ----
+  function showError(m) { const e = $('#error'); e.textContent = m; e.classList.toggle('hidden', !m); }
+
+  // Resize to max 1280px and re-encode as JPEG to cut upload size on mobile networks.
+  async function compress(file, max = 1280, q = 0.85) {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('compress')), 'image/jpeg', q));
+  }
+
+  function bind(kind) {
+    const onFile = async e => {
+      const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      showError('');
+      if (f.type && !ALLOWED.includes(f.type) && !/^image\//.test(f.type)) return showError('Sirf JPG, JPEG, PNG ya WEBP photo chalegi. / Only JPG, JPEG, PNG or WEBP.');
+      if (f.type && !ALLOWED.includes(f.type)) return showError('Yeh photo format support nahi hota. JPG, PNG ya WEBP chunein. / Unsupported format.');
+      try {
+        const blob = await compress(f);
+        state[kind] = blob;
+        const d = $(`#${kind}Drop`); d.style.backgroundImage = `url(${URL.createObjectURL(blob)})`; d.textContent = ''; d.classList.add('has');
+        $(`#${kind}Btns`).classList.add('hidden'); $(`#${kind}Edit`).classList.remove('hidden');
+        refresh();
+      } catch { showError('Photo padh nahi paye. Doosri photo try karein. / Could not read this photo.'); }
+    };
+    $(`#${kind}File`).addEventListener('change', onFile);
+    $(`#${kind}Cam`).addEventListener('change', onFile);
+  }
+  bind('person'); bind('garment');
+
+  function clear(kind) {
+    state[kind] = null;
+    const d = $(`#${kind}Drop`); d.style.backgroundImage = ''; d.classList.remove('has');
+    d.innerHTML = kind === 'person' ? 'Aapki photo yahan dikhegi<br>Your photo will appear here' : 'Kapde ki photo yahan dikhegi<br>Garment photo will appear here';
+    $(`#${kind}Btns`).classList.remove('hidden'); $(`#${kind}Edit`).classList.add('hidden'); refresh();
+  }
+  document.addEventListener('click', e => { const k = e.target.dataset.clear; if (k) clear(k); });
+
+  const refresh = () => { $('#go').disabled = !(state.person && state.garment) || state.busy; };
+
+  // ---- try-on ----
+  let timerId;
+  async function tryOn() {
+    if (state.busy) return;
+    state.busy = true; refresh(); showError(''); $('#result').classList.add('hidden');
+    $('#loading').classList.remove('hidden'); $('#status').textContent = 'Photos bheji ja rahi hain...';
+    const t0 = Date.now(); timerId = setInterval(() => $('#timer').textContent = Math.round((Date.now() - t0) / 1000) + 's', 1000);
+    try {
+      const fd = new FormData();
+      fd.append('person', state.person, 'person.jpg'); fd.append('garment', state.garment, 'garment.jpg');
+      fd.append('gender', state.gender); fd.append('type', state.type);
+      const r = await fetch(API+'/api/tryon', { method: 'POST', body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Server se jawab nahi mila. / No response from server.');
+      const url = await poll(j.id);
+      const img = await fetch(API+url).then(x => x.blob());
+      state.blob = img; $('#resultImg').src = URL.createObjectURL(img);
+      $('#result').classList.remove('hidden'); $('#result').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) {
+      showError(!navigator.onLine ? 'Internet nahi hai. Connection check karein. / You are offline.' : e instanceof TypeError ? 'AI server se connect nahi ho paya. Server chalu hai ya nahi check karein (API address sahi hona chahiye). / Cannot reach the AI server.' : e.message);
+    } finally {
+      clearInterval(timerId); $('#loading').classList.add('hidden'); state.busy = false; refresh();
+    }
+  }
+
+  async function poll(id) {
+    for (let fails = 0; ;) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const j = await fetch(API+'/api/status?id=' + id).then(r => r.json()); fails = 0;
+        if (j.status === 'done') return j.url;
+        if (j.status === 'failed') throw new Error(j.error);
+        if (j.message) $('#status').textContent = j.message;
+      } catch (e) { if (e.message && !(e instanceof TypeError) && !(e instanceof SyntaxError)) throw e; if (++fails > 5) throw new Error('Connection toot gaya. Dobara try karein. / Connection lost.'); }
+    }
+  }
+
+  $('#go').addEventListener('click', tryOn);
+  $('#again').addEventListener('click', tryOn);
+  $('#another').addEventListener('click', () => { clear('garment'); $('#result').classList.add('hidden'); $('#garmentDrop').scrollIntoView({ behavior: 'smooth' }); });
+  $('#dl').addEventListener('click', () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(state.blob); a.download = 'virtual-tryon.jpg'; a.click();
+  });
+  $('#share').addEventListener('click', async () => {
+    const file = new File([state.blob], 'virtual-tryon.jpg', { type: 'image/jpeg' });
+    try {
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: $('#shop').textContent });
+      else showError('Share is device par available nahi. Download karke bhejein. / Sharing unavailable; download instead.');
+    } catch (e) { if (e.name !== 'AbortError') showError('Share nahi ho paya. / Could not share.'); }
+  });
+})();
+
+</script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  let token = sessionStorage.getItem('adm') || '', logo = null;
+  const api = async (url, opt = {}) => {
+    const r = await fetch(API+url, { ...opt, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token } });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401 && token) { sessionStorage.removeItem('adm'); location.reload(); }
+    if (!r.ok) throw new Error(j.error || 'Request failed');
+    return j;
+  };
+  const flash = (el, m, ok) => { el.textContent = m; el.style.background = ok ? '#e7f3ee' : ''; el.style.color = ok ? '#1e4d3f' : ''; el.classList.remove('hidden'); };
+
+  async function load() {
+    const [st, se, rs] = await Promise.all([api('/api/admin/stats'), api('/api/admin/settings'), api('/api/admin/results')]);
+    $('#login').classList.add('hidden'); $('#panel').classList.remove('hidden');
+    $('#sTotal').textContent = st.total; $('#sToday').textContent = st.today; $('#sLimit').textContent = st.dailyLimit;
+    $('#shopName').value = se.shopName; $('#limit').value = se.dailyLimit;
+    $('#provider').innerHTML = se.providers.map(p => `<option ${p === se.provider ? 'selected' : ''}>${p}</option>`).join('');
+    $('#apiKey').placeholder = se.keyFromEnv ? 'Set in server environment (AI_API_KEY)' : se.hasApiKey ? 'Saved – type to replace' : 'Paste API key';
+    $('#apiKey').disabled = se.keyFromEnv;
+    $('#empty').classList.toggle('hidden', rs.length > 0);
+    $('#gallery').innerHTML = rs.map(r => `<figure><img loading="lazy" src="${API}/api/result?f=${r.file}" alt="Result"><figcaption>${new Date(r.createdAt).toLocaleString()}<br>${r.gender || ''} · ${r.type || ''}</figcaption><button class="btn danger" data-del="${r.id}">Delete</button></figure>`).join('');
+  }
+
+  $('#loginBtn').onclick = async () => {
+    try {
+      token = (await api('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: $('#pw').value }) })).token;
+      sessionStorage.setItem('adm', token); await load();
+    } catch (e) { flash($('#loginErr'), e instanceof TypeError ? 'Server se connect nahi ho paya. / Cannot reach the server.' : e.message); }
+  };
+  $('#pw').addEventListener('keydown', e => e.key === 'Enter' && $('#loginBtn').click());
+
+  $('#logoFile').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const img = new Image(); img.onload = () => {
+      const s = Math.min(1, 240 / img.height), c = document.createElement('canvas');
+      c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      logo = c.toDataURL('image/png');
+    }; img.src = URL.createObjectURL(f);
+  };
+
+  $('#saveBtn').onclick = async () => {
+    const body = { shopName: $('#shopName').value, dailyLimit: $('#limit').value, provider: $('#provider').value, apiKey: $('#apiKey').value };
+    if (logo) body.logo = logo;
+    try { await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(body) }); $('#apiKey').value = ''; flash($('#saveMsg'), 'Settings saved.', true); load(); }
+    catch (e) { flash($('#saveMsg'), e.message); }
+  };
+
+  $('#gallery').onclick = async e => {
+    const id = e.target.dataset.del; if (!id || !confirm('Delete this result?')) return;
+    await api('/api/admin/results/' + id, { method: 'DELETE' }); load();
+  };
+  $('#purge').onclick = async () => {
+    const d = +$('#days').value;
+    if (!confirm(`Delete all results older than ${d} days?`)) return;
+    await api('/api/admin/results?olderThanDays=' + d, { method: 'DELETE' }); load();
+  };
+
+  if (token) load().catch(() => {});
+})();
+
+</script>
+</body>
+</html>
